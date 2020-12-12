@@ -2,10 +2,11 @@
   "name": "express-mesto",
   "version": "1.0.0",
   "description": "Project Express-Mesto",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "lint": "eslint ./src --fix",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "repository": {
     "type": "git",
