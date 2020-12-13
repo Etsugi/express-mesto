@@ -6,7 +6,7 @@ const pathToFile = path.join(__dirname, '..', 'data', 'cards.json');
 const getCards = (req, res) => {
   return getFiles(pathToFile)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(500).send(JSON.stringify({"message": "Произошла ошибка при загрузке данных"})));
+    .catch(err => res.status(500).send({"message": "Произошла ошибка при загрузке данных"}));
 };
 
 const getFiles = (pathToFile) => {
