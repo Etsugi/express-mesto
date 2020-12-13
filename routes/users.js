@@ -6,13 +6,13 @@ const pathToFile = path.join(__dirname, '..', 'data', 'users.json');
 const getUsers = (req, res) => {
   return getFiles(pathToFile)
     .then(data => res.status(200).send(data))
-    .catch(err => res.status(500).send(err));
+    .catch(err => res.status(500).send(JSON.stringify({"message": "Произошла ошибка при загрузке данных"})));
 };
 
 const getFiles = (pathToFile) => {
   return fsPromises.readFile(pathToFile, {encoding: 'utf-8'})
     .then(data => JSON.parse(data))
-    .catch(err => console.log(err));
+    .catch();
 }
 
 const getProfile = (req, res) => {
@@ -20,11 +20,11 @@ const getProfile = (req, res) => {
     .then(users => users.find(users => users._id === req.params.id))
     .then((user) => {
       if(!user) {
-        return res.status(404).send('"message": "Нет пользователя с таким id"');
+        return res.status(404).send(JSON.stringify({"message": "Нет пользователя с таким id"}));
       }
       return res.status(200).send(user);
     })
-    .catch(err => res.status(500).send(err));
+    .catch(err => res.status(500).send(JSON.stringify({"message": "Произошла ошибка при загрузке данных"})));
 };
 
 router.get('/users', getUsers);
