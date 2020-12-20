@@ -19,7 +19,8 @@
   },
   "homepage": "https://github.com/Etsugi/express-mesto#readme",
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "mongoose": "^5.11.8"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.9.1",
