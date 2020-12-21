@@ -2,59 +2,105 @@ const Card = require('../models/card');
 
 const getCards = (req, res) => {
   Card.find({})
-    .then(data => res.status(200).send(data))
-    .catch(err => res.status(500).send({"message": "Ошибка на сервере"}));
+    .populate(['likes', 'owner'])
+    .then(data => res.send(data))
+    .catch(() => res.status(500).send({message: 'Ошибка на сервере'}));
 };
 
-const postCards = (req, res) => {
+const createCard = (req, res) => {
   const { name, link } = req.body;
   const owner = req.user._id;
 
   Card.create({ name, link, owner })
-    .then(data => res.status(200).send(data))
+    .then(data => res.send(data))
     .catch(err => {
-      if (err._message === 'card validation failed') {
-        return res.status(400).send({"message": "Переданы некорректные данные"});
+      if (err.name === 'ValidationError') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
       }
-      res.status(500).send({"message": "Ошибка на сервере"});
-    })
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 const deleteCard = (req, res) => {
-  const cardId = req.params.cardId;
+  const { cardId } = req.params;
+
   Card.findByIdAndRemove(cardId)
-    .then(card => res.send(card))
-    .catch(err => res.status(500).send({"message": "Ошибка на сервере"}));
+    .orFail(() => {
+      const err = new Error('Карточка не найдена');
+      err.statusCode = 404;
+      throw err;
+    })
+    .populate(['likes', 'owner'])
+    .then(data => res.send(data))
+    .catch(err => {
+      if (err.statusCode === 404) {
+        return res.status(404).send({message: err.message});
+      }
+      if (err.kind === 'ObjectId') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
+      }
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 const likeCard = (req, res) => {
-  const cardId = req.params.cardId;
+  const { cardId } = req.params;
   const userId = req.user._id;
+
   Card.findByIdAndUpdate(
     cardId,
     { $addToSet: { likes: userId } },
     { new: true },
   )
-  .then(card => res.send(card))
-  .catch(err => res.status(500).send({"message": "Ошибка на сервере"}));
+    .orFail(() => {
+      const err = new Error('Карточка не найдена');
+      err.statusCode = 404;
+      throw err;
+    })
+    .populate(['likes', 'owner'])
+    .then(card => res.send(card))
+    .catch(err => {
+      if (err.statusCode === 404) {
+        return res.status(404).send({message: err.message});
+      }
+      if (err.kind === 'ObjectId') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
+      }
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 const disLikeCard = (req, res) => {
-  const cardId = req.params.cardId;
+  const { cardId } = req.params;
   const userId = req.user._id;
+
   Card.findByIdAndUpdate(
     cardId,
     { $pull: { likes: userId } },
     { new: true },
   )
-  .then(card => res.send(card))
-  .catch(err => res.status(500).send({"message": "Ошибка на сервере"}));
+    .orFail(() => {
+      const err = new Error('Карточка не найдена');
+      err.statusCode = 404;
+      throw err;
+    })
+    .populate(['likes', 'owner'])
+    .then(card => res.send(card))
+    .catch(err => {
+      if (err.statusCode === 404) {
+        return res.status(404).send({message: err.message});
+      }
+      if (err.kind === 'ObjectId') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
+      }
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 module.exports = {
   getCards,
-  postCards,
+  createCard,
   deleteCard,
   likeCard,
   disLikeCard
-}
+};

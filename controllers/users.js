@@ -2,41 +2,42 @@ const User = require('../models/user');
 
 const getUsers = (req, res) => {
   User.find({})
-    .then(data => res.status(200).send(data))
-    .catch(err => res.status(500).send({"message": "Ошибка на сервере"}));
+    .then(data => res.send(data))
+    .catch(() => res.status(500).send({message: 'Ошибка на сервере'}));
 };
 
 const getUserById = (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
+
   User.findById(id)
     .orFail(() => {
       const err = new Error('Пользователь не найден');
       err.statusCode = 404;
       throw err;
     })
-    .then((data) => res.status(200).send(data))
+    .then((data) => res.send(data))
     .catch(err => {
-      if(err.statusCode === 404) {
-        return res.status(404).send({"message": err.message});
+      if (err.statusCode === 404) {
+        return res.status(404).send({message: err.message});
       }
-      else if (err.kind === 'ObjectId') {
-        return res.status(400).send({"message": "Данные невалидны"});
+      if (err.kind === 'ObjectId') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
       }
-      res.status(500).send({"message": "Ошибка на сервере"});
-    })
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 const createUser = (req, res) => {
   const { name, about, avatar } = req.body;
 
   User.create({ name, about, avatar })
-    .then(data => res.status(200).send(data))
+    .then(data => res.send(data))
     .catch(err => {
-      if (err._message === 'user validation failed') {
-        return res.status(400).send({"message": "Переданы некорректные данные"});
+      if (err.name === 'ValidationError') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
       }
-      res.status(500).send({"message": "Ошибка на сервере"});
-    })
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 const updateUser = (req, res) => {
@@ -50,13 +51,13 @@ const updateUser = (req, res) => {
     runValidators: true,
     new: true
   })
-    .then((data) => res.status(200).send(data))
+    .then((data) => res.send(data))
     .catch(err => {
-      if (err._message === 'Validation failed') {
-        return res.status(400).send({"message": "Переданы некорректные данные"});
+      if (err.name === 'ValidationError') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
       }
-      res.status(500).send({"message": err});
-    })
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 const updateUserAvatar = (req, res) => {
@@ -69,13 +70,13 @@ const updateUserAvatar = (req, res) => {
     runValidators: true,
     new: true
   })
-    .then((data) => res.status(200).send(data))
+    .then((data) => res.send(data))
     .catch(err => {
-      if (err._message === 'Validation failed') {
-        return res.status(400).send({"message": "Переданы некорректные данные"});
+      if (err.name === 'ValidationError') {
+        return res.status(400).send({message: 'Переданы некорректные данные'});
       }
-      res.status(500).send({"message": "Ошибка на сервере"});
-    })
+      return res.status(500).send({message: 'Ошибка на сервере'});
+    });
 };
 
 module.exports = {
@@ -84,4 +85,4 @@ module.exports = {
   createUser,
   updateUser,
   updateUserAvatar
-}
+};
