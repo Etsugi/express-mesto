@@ -1,46 +1,79 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
-const getUsers = (req, res) => {
+const NotFoundError = require('../errors/not-found-err');
+const BadRequestError = require('../errors/bad-request-err');
+const ConflictingRequestError = require('../errors/conflicting-request-err');
+const UnauthorizeError = require('../errors/unauthorized-err');
+
+const { NODE_ENV, JWT_SECRET } = process.env;
+
+const getUsers = (req, res, next) => {
   User.find({})
     .then(data => res.send(data))
-    .catch(() => res.status(500).send({message: 'Ошибка на сервере'}));
+    .catch(next);
 };
 
-const getUserById = (req, res) => {
+const getUserById = (req, res, next) => {
   const { id } = req.params;
 
   User.findById(id)
     .orFail(() => {
-      const err = new Error('Пользователь не найден');
-      err.statusCode = 404;
+      const err = 404;
       throw err;
     })
-    .then((data) => res.send(data))
-    .catch(err => {
-      if (err.statusCode === 404) {
-        return res.status(404).send({message: err.message});
-      }
-      if (err.kind === 'ObjectId') {
-        return res.status(400).send({message: 'Переданы некорректные данные'});
-      }
-      return res.status(500).send({message: 'Ошибка на сервере'});
-    });
-};
-
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-
-  User.create({ name, about, avatar })
     .then(data => res.send(data))
     .catch(err => {
-      if (err.name === 'ValidationError') {
-        return res.status(400).send({message: 'Переданы некорректные данные'});
+      if (err === 404) {
+        throw new NotFoundError('Пользователь не найден');
       }
-      return res.status(500).send({message: 'Ошибка на сервере'});
-    });
+      if (err.kind === 'ObjectId') {
+        throw new BadRequestError('Переданы некорректные данные');
+      }
+    })
+    .catch(next);
 };
 
-const updateUser = (req, res) => {
+const createUser = (req, res, next) => {
+  bcrypt.hash(req.body.password, 10)
+    .then(hash => User.create({
+      email: req.body.email,
+      password: hash,
+      name: req.body.name,
+      about: req.body.about,
+      avatar: req.body.avatar
+    }))
+    .then((user) => {
+      res.send({
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+        _id: user._id,
+        email: user.email
+      });
+    })
+    .catch(err => {
+      if (err.code === 11000) {
+        throw new ConflictingRequestError('Пользователь с таким email уже существует');
+      }
+      if (err.name === 'ValidationError') {
+        throw new BadRequestError(err.message);
+      }
+    })
+    .catch(next);
+};
+
+const getUserInfo = (req, res, next) => {
+  const id = req.user._id;
+  User.findById(id)
+    .then((user) => {
+      res.send(user);
+    })
+    .catch(next);
+};
+
+const updateUser = (req, res, next) => {
   const { name, about } = req.body;
   const id = req.user._id;
 
@@ -54,13 +87,13 @@ const updateUser = (req, res) => {
     .then((data) => res.send(data))
     .catch(err => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({message: 'Переданы некорректные данные'});
+        throw new BadRequestError('Переданы некорректные данные');
       }
-      return res.status(500).send({message: 'Ошибка на сервере'});
-    });
+    })
+    .catch(next);
 };
 
-const updateUserAvatar = (req, res) => {
+const updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
   const id = req.user._id;
 
@@ -73,16 +106,36 @@ const updateUserAvatar = (req, res) => {
     .then((data) => res.send(data))
     .catch(err => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({message: 'Переданы некорректные данные'});
+        throw new BadRequestError('Переданы некорректные данные');
       }
-      return res.status(500).send({message: 'Ошибка на сервере'});
-    });
+    })
+    .catch(next);
+};
+
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        { _id: user._id },
+        NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
+        { expiresIn: '7d' },
+      );
+      res.send({ token });
+    })
+    .catch(() => {
+      throw new UnauthorizeError('Некорректно заполнено одно из полей');
+    })
+    .catch(next);
 };
 
 module.exports = {
   getUsers,
   getUserById,
   createUser,
+  getUserInfo,
   updateUser,
-  updateUserAvatar
+  updateUserAvatar,
+  login
 };
