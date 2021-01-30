@@ -9,19 +9,16 @@ const router = require('./routes/index');
 const { login } = require('./controllers/users');
 const { createUser } = require('./controllers/users');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const NotFoundError = require('./errors/not-found-err');
 
 const app = express();
-const { PORT = 3000 } = process.env;
 
-const whiteList = [
-  'https://kiprin.students.nomoredomains.icu/',
-  'https://api.kiprin.students.nomoredomains.icu/',
-  'http://localhost:3000'
-];
-
+const allowedCors = '*';
 app.use(cors({
-  origin: whiteList
+  origin: allowedCors
 }));
+
+const { PORT = 3000 } = process.env;
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
@@ -39,13 +36,6 @@ app.get('/crash-test', () => {
   setTimeout(() => {
     throw new Error('Сервер сейчас упадёт');
   }, 0);
-});
-
-app.use((req, res, next) => {
-  req.user = {
-    _id: '5fdd0e87a5863431d40937a1'
-  };
-  next();
 });
 
 app.post('/signin', celebrate({
@@ -66,15 +56,14 @@ app.post('/signup', celebrate({
 }), createUser);
 
 app.use('/', router);
-app.use('/*', (req, res) => {
-  res.status(404).send({message: 'Запрашиваемый ресурс не найден'});
+app.use('/*', () => {
+  throw new NotFoundError('Запрашиваемый ресурс не найден');
 });
 
 app.use(errorLogger);
 
 app.use(errors());
 
-// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
 
@@ -83,6 +72,7 @@ app.use((err, req, res, next) => {
       ? 'На сервере произошла ошибка'
       : message
   });
+  next();
 });
 
 app.listen(PORT, () => {

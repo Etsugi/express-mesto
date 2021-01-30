@@ -67,8 +67,9 @@ const createUser = (req, res, next) => {
 const getUserInfo = (req, res, next) => {
   const id = req.user._id;
   User.findById(id)
-    .then((user) => {
-      res.send(user);
+    .then(user => res.send(user))
+    .catch((err) => {
+      res.send(err);
     })
     .catch(next);
 };
@@ -114,7 +115,6 @@ const updateUserAvatar = (req, res, next) => {
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
-
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign(
