@@ -3,6 +3,7 @@ require('dotenv').config();
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const { celebrate, Joi, errors } = require('celebrate');
+const cors = require('cors');
 
 const router = require('./routes/index');
 const { login } = require('./controllers/users');
@@ -11,6 +12,16 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const app = express();
 const { PORT = 3000 } = process.env;
+
+const whiteList = [
+  'https://kiprin.students.nomoredomains.icu/',
+  'https://api.kiprin.students.nomoredomains.icu/',
+  'http://localhost:3000'
+];
+
+app.use(cors({
+  origin: whiteList
+}));
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
