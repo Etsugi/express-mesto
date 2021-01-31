@@ -36,7 +36,8 @@ const deleteCard = (req, res, next) => {
     })
     .then((card) => {
       if (card.owner.toString() !== id) {
-        throw new ForbiddenError('Нет прав на удаление');
+        const err = 403;
+        throw err;
       } else {
         Card.findByIdAndRemove(cardId)
           .populate(['likes', 'owner'])
@@ -47,6 +48,9 @@ const deleteCard = (req, res, next) => {
     .catch(err => {
       if (err === 404) {
         throw new NotFoundError('Карточка не найдена');
+      }
+      if (err === 403) {
+        throw new ForbiddenError('Нет прав на удаление');
       }
       if (err.kind === 'ObjectId') {
         throw new BadRequestError('Переданы некорректные данные');

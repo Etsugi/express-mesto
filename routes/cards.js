@@ -17,12 +17,24 @@ router.post('/', celebrate({
     link: Joi.string().required()
       .regex(/^((https?):\/\/)?(www\.)?([A-Za-z0-9]{1}[A-Za-z0-9-]*\.?)*\.{1}[A-Za-z0-9-]{2,8}(\/([\w#!:.?+=&%@!\-/])*)?/)
   }),
-
 }), createCard);
-router.delete('/:cardId', deleteCard);
 
-router.put('/:cardId/likes', likeCard);
+router.delete('/:cardId', celebrate({
+  params: Joi.object().keys({
+    cardId: Joi.string().required().length(24).hex()
+  }),
+}), deleteCard);
 
-router.delete('/:cardId/likes', disLikeCard);
+router.put('/:cardId/likes', celebrate({
+  params: Joi.object().keys({
+    cardId: Joi.string().required().length(24).hex()
+  }),
+}), likeCard);
+
+router.delete('/:cardId/likes', celebrate({
+  params: Joi.object().keys({
+    cardId: Joi.string().required().length(24).hex()
+  }),
+}), disLikeCard);
 
 module.exports = router;
